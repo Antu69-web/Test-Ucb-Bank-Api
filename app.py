@@ -4,8 +4,8 @@ from flasgger import Swagger
 
 app = Flask(__name__)
 
-# এই সিক্রেট কি (Secret Key) দিয়ে টোকেন তৈরি এবং ভেরিফাই করা হয়। 
-# রিয়েল প্রজেক্টে এটি অনেক সিক্রেট রাখতে হয়!
+# This Secret Key is used to create and verify tokens.
+# In a real project, this must be kept highly secure!
 app.config['JWT_SECRET_KEY'] = 'ucb_super_secret_key_123'
 jwt = JWTManager(app)
 
@@ -38,9 +38,9 @@ app.config['SWAGGER'] = {
 }
 swagger = Swagger(app, template=swagger_template)
 
-# --- ডামি ডেটাবেজ (Dummy Database) ---
-# আসল প্রজেক্টে এগুলো ডেটাবেজ (যেমন MySQL/PostgreSQL) থেকে আসবে।
-# আমরা শেখার জন্য আপাতত একটি লিস্ট ব্যবহার করছি।
+# --- Dummy Database ---
+# In a real project, these would come from a database (like MySQL/PostgreSQL).
+# We are temporarily using dictionaries/lists for learning purposes.
 users_db = {
     "admin1": {"password": "password123", "role": "admin"},
     "employee1": {"password": "password123", "role": "employee"}
@@ -51,8 +51,8 @@ customers_data = [
     {"id": 2, "name": "Karim", "balance": 10000}
 ]
 
-# API 1: Login API (সবার জন্য)
-# এই এপিআই-তে ইউজারনেম এবং পাসওয়ার্ড দিয়ে রিকোয়েস্ট করলে আমরা একটি টোকেন দেবো।
+# API 1: Login API (For Everyone)
+# This API verifies the username and password and returns a JWT token.
 @app.route('/login', methods=['POST'])
 def login():
     """
@@ -79,15 +79,15 @@ def login():
       401:
         description: Invalid username or password
     """
-    # রিকোয়েস্ট থেকে JSON ডেটা নিচ্ছি
+    # Getting JSON data from the request
     data = request.get_json()
     username = data.get('username', None)
     password = data.get('password', None)
 
-    # ইউজারনেম ও পাসওয়ার্ড সঠিক কি না চেক করা
+    # Checking if username and password are correct
     user = users_db.get(username)
     if user and user['password'] == password:
-        # টোকেনের ভেতরে আমরা ইউজারের রোল (role) ও সেভ করে রাখছি (additional_claims দিয়ে)
+        # We are also saving the user's role inside the token (using additional_claims)
         access_token = create_access_token(
             identity=username, 
             additional_claims={"role": user['role']}
@@ -97,9 +97,9 @@ def login():
     return jsonify({"message": "Invalid username or password"}), 401
 
 
-# API 2: Get all customers (শুধু Admin এর জন্য)
+# API 2: Get all customers (Admin only)
 @app.route('/customers', methods=['GET'])
-@jwt_required()  # এর মানে হলো এই এপিআই কল করতে হলে টোকেন লাগবে
+@jwt_required()  # This means a token is required to call this API
 def get_customers():
     """
     Get all customers (Admin only)
@@ -114,7 +114,7 @@ def get_customers():
       403:
         description: Access Denied! Only admins can see this.
     """
-    # টোকেন থেকে রোল বের করে আনছি
+    # Extracting the role from the token
     claims = get_jwt()
     if claims.get("role") != "admin":
         return jsonify({"message": "Access Denied! Only admins can see this."}), 403
@@ -122,7 +122,7 @@ def get_customers():
     return jsonify({"customers": customers_data}), 200
 
 
-# API 3: Get my profile (Admin এবং Employee উভয়ের জন্য)
+# API 3: Get my profile (For both Admin and Employee)
 @app.route('/my-profile', methods=['GET'])
 @jwt_required()
 def my_profile():
@@ -137,7 +137,7 @@ def my_profile():
       401:
         description: Unauthorized
     """
-    # কে লগইন করেছে তার নাম বের করা
+    # Getting the name of the currently logged in user
     current_user = get_jwt_identity()
     claims = get_jwt()
     
@@ -147,7 +147,7 @@ def my_profile():
     }), 200
 
 
-# API 4: Add new customer (শুধু Admin এর জন্য)
+# API 4: Add new customer (Admin only)
 @app.route('/add-customer', methods=['POST'])
 @jwt_required()
 def add_customer():
@@ -191,7 +191,7 @@ def add_customer():
     return jsonify({"message": "Customer added successfully", "customer": new_customer}), 201
 
 
-# API 5: Delete a customer (শুধু Admin এর জন্য)
+# API 5: Delete a customer (Admin only)
 @app.route('/customer/<int:customer_id>', methods=['DELETE'])
 @jwt_required()
 def delete_customer(customer_id):
@@ -221,7 +221,7 @@ def delete_customer(customer_id):
         return jsonify({"message": "Access Denied! Only admins can delete customers."}), 403
     
     global customers_data
-    # যেই id টি ডিলিট করতে বলা হয়েছে সেটি বাদে বাকিগুলো রেখে দিচ্ছি
+    # Keeping all customers except the one with the requested id
     updated_data = [c for c in customers_data if c["id"] != customer_id]
     
     if len(updated_data) == len(customers_data):
