@@ -14,6 +14,11 @@ class Config:
         'uiversion': 3
     }
 
+    # PostgreSQL Database Connection
+    # Change '123' to your actual pgAdmin password if it changes
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:123@localhost:5432/ucb_bank_db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
 swagger_template = {
   "swagger": "2.0",
   "info": {

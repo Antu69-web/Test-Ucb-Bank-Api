@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
-from database.dummy_db import users_db
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from auth.services.auth_service import authenticate_user
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -35,15 +35,11 @@ def login():
     username = data.get('username', None)
     password = data.get('password', None)
 
-    user = users_db.get(username)
-    if user and user['password'] == password:
-        access_token = create_access_token(
-            identity=username, 
-            additional_claims={"role": user['role']}
-        )
-        return jsonify({"message": "Login successful", "access_token": access_token}), 200
+    token, error = authenticate_user(username, password)
+    if token:
+        return jsonify({"message": "Login successful", "access_token": token}), 200
 
-    return jsonify({"message": "Invalid username or password"}), 401
+    return jsonify({"message": error}), 401
 
 
 # API 3: Get my profile (For both Admin and Employee)

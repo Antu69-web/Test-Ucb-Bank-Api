@@ -1,11 +1,10 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
-from database.dummy_db import loan_requests_data, customers_data
-from workflow.services.workflow_service import process_loan_approval, process_loan_rejection
+from workflow.services.workflow_service import request_loan as req_loan_service, get_pending_loans as get_pend_service, approve_loan as approve_service, reject_loan as reject_service
 
 workflow_bp = Blueprint('workflow', __name__)
 
-@workflow_bp.route('/workflow/loan/request', methods=['POST'])
+@workflow_bp.route('/loan/request', methods=['POST'])
 @jwt_required()
 def request_loan():
     """
@@ -39,24 +38,10 @@ def request_loan():
         return jsonify({"message": "Access Denied! Only employees can submit loan requests."}), 403
     
     data = request.get_json()
-    customer_id = data.get("customer_id")
-    amount = data.get("amount")
-    
-    # Check if customer exists
-    if not any(c['id'] == customer_id for c in customers_data):
-        return jsonify({"message": "Customer not found."}), 404
-        
-    new_request = {
-        "id": len(loan_requests_data) + 1,
-        "customer_id": customer_id,
-        "amount": amount,
-        "status": "pending"
-    }
-    loan_requests_data.append(new_request)
-    
-    return jsonify({"message": "Loan request submitted to workflow.", "request": new_request}), 201
+    response, status_code = req_loan_service(data)
+    return jsonify(response), status_code
 
-@workflow_bp.route('/workflow/loan/pending', methods=['GET'])
+@workflow_bp.route('/loan/pending', methods=['GET'])
 @jwt_required()
 def get_pending_loans():
     """
@@ -74,10 +59,9 @@ def get_pending_loans():
     if claims.get("role") != "admin":
         return jsonify({"message": "Access Denied! Only admins can view pending requests."}), 403
         
-    pending = [r for r in loan_requests_data if r['status'] == 'pending']
-    return jsonify({"pending_requests": pending}), 200
+    return jsonify({"pending_requests": get_pend_service()}), 200
 
-@workflow_bp.route('/workflow/loan/approve/<int:request_id>', methods=['POST'])
+@workflow_bp.route('/loan/approve/<int:request_id>', methods=['POST'])
 @jwt_required()
 def approve_loan(request_id):
     """
@@ -102,13 +86,10 @@ def approve_loan(request_id):
     if claims.get("role") != "admin":
         return jsonify({"message": "Access Denied! Only admins can approve loans."}), 403
         
-    success, message = process_loan_approval(request_id)
-    if success:
-        return jsonify({"message": message}), 200
-    else:
-        return jsonify({"message": message}), 400
+    response, status_code = approve_service(request_id)
+    return jsonify(response), status_code
 
-@workflow_bp.route('/workflow/loan/reject/<int:request_id>', methods=['POST'])
+@workflow_bp.route('/loan/reject/<int:request_id>', methods=['POST'])
 @jwt_required()
 def reject_loan(request_id):
     """
@@ -133,8 +114,5 @@ def reject_loan(request_id):
     if claims.get("role") != "admin":
         return jsonify({"message": "Access Denied! Only admins can reject loans."}), 403
         
-    success, message = process_loan_rejection(request_id)
-    if success:
-        return jsonify({"message": message}), 200
-    else:
-        return jsonify({"message": message}), 400
+    response, status_code = reject_service(request_id)
+    return jsonify(response), status_code
