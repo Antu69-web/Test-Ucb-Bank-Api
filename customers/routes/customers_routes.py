@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
-from customers.services.customers_service import get_all_customers, add_customer, delete_customer, add_multiple_customers
+from customers.services.customers_service import get_all_customers, add_customer, delete_customer, add_multiple_customers, upload_customers_from_file
 
 customers_bp = Blueprint('customers', __name__)
 
@@ -102,6 +102,48 @@ def post_customers_bulk():
         
     data = request.get_json()
     response, status_code = add_multiple_customers(data)
+    return jsonify(response), status_code
+
+@customers_bp.route('/customers/upload', methods=['POST'])
+@jwt_required()
+def post_customers_upload():
+    """
+    Upload an Excel or CSV file to bulk insert customers (Admin only)
+    ---
+    tags:
+      - Customers
+    consumes:
+      - multipart/form-data
+    parameters:
+      - name: file
+        in: formData
+        type: file
+        required: true
+        description: The Excel or CSV file containing customers data (must have 'name' and 'balance' columns)
+    responses:
+      201:
+        description: Customers added successfully
+      400:
+        description: Invalid file format or missing columns
+      401:
+        description: Unauthorized
+      403:
+        description: "Access forbidden: Admins only"
+      500:
+        description: Failed to process file
+    """
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
+        return jsonify({"message": "Access forbidden: Admins only"}), 403
+        
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    response, status_code = upload_customers_from_file(file)
     return jsonify(response), status_code
 
 @customers_bp.route('/customer/<int:customer_id>', methods=['DELETE'])

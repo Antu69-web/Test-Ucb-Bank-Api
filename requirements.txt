@@ -2,3 +2,5 @@ Flask
 flask-jwt-extended
 flasgger
 python-dotenv
+pandas
+openpyxl

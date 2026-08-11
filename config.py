@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 # Load variables from .env
 load_dotenv()
@@ -9,9 +10,13 @@ class Config:
     # It is securely loaded from the .env file.
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'fallback_secret')
     
+    # Set token expiration to 30 days to avoid frequent log-ins during development
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=30)
+    
     SWAGGER = {
         'title': 'UCB Bank API',
-        'uiversion': 3
+        'uiversion': 3,
+        'persistAuthorization': True
     }
 
     # PostgreSQL Database Connection

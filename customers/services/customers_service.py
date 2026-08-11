@@ -1,3 +1,4 @@
+import pandas as pd
 from customers.models.customer import Customer
 from database.db import db
 
@@ -40,3 +41,38 @@ def add_multiple_customers(data_list):
         
     db.session.commit()
     return {"message": f"{len(added_customers)} customers added successfully", "customers": added_customers}, 201
+
+def upload_customers_from_file(file):
+    filename = file.filename
+    try:
+        if filename.endswith('.csv'):
+            df = pd.read_csv(file)
+        elif filename.endswith('.xlsx') or filename.endswith('.xls'):
+            df = pd.read_excel(file)
+        else:
+            return {"error": "Invalid file format. Please upload a .csv or .xlsx file."}, 400
+            
+        # Smart column mapping
+        df.columns = df.columns.str.lower().str.strip()
+        
+        name_variations = ['name', 'customer name', 'full name', 'client name', 'customer', 'id name']
+        balance_variations = ['balance', 'account balance', 'amount', 'current balance', 'taka']
+        
+        actual_name_col = next((col for col in df.columns if col in name_variations), None)
+        actual_balance_col = next((col for col in df.columns if col in balance_variations), None)
+        
+        if not actual_name_col or not actual_balance_col:
+            return {"error": f"Could not find valid 'name' or 'balance' columns. Found: {list(df.columns)}"}, 400
+            
+        df = df.rename(columns={actual_name_col: 'name', actual_balance_col: 'balance'})
+            
+        df = df.dropna(subset=['name'])
+        df['balance'] = df['balance'].fillna(0).astype(int)
+        
+        data_list = df[['name', 'balance']].to_dict('records')
+        
+        # Reuse the bulk insertion logic
+        return add_multiple_customers(data_list)
+        
+    except Exception as e:
+        return {"error": f"Failed to process file: {str(e)}"}, 500
