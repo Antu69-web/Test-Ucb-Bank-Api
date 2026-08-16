@@ -19,10 +19,12 @@ def create_app():
     from auth.routes.auth_routes import auth_bp
     from customers.routes.customers_routes import customers_bp
     from workflow.routes.workflow_routes import workflow_bp
+    from calculator.routes.calculator_routes import calculator_bp
     
     app.register_blueprint(auth_bp, url_prefix='/')
     app.register_blueprint(customers_bp, url_prefix='/')
     app.register_blueprint(workflow_bp, url_prefix='/workflow')
+    app.register_blueprint(calculator_bp, url_prefix='/calculator')
     
     @app.route('/')
     def index():
