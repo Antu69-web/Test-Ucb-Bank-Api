@@ -23,6 +23,11 @@ class Config:
     # Change '123' to your actual pgAdmin password if it changes
     SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:123@localhost:5432/ucb_bank_db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # Cloudinary Credentials
+    CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME')
+    CLOUDINARY_API_KEY = os.environ.get('CLOUDINARY_API_KEY')
+    CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET')
 
 swagger_template = {
   "swagger": "2.0",

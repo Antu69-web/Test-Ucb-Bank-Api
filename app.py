@@ -3,6 +3,7 @@ from flasgger import Swagger
 from flask_jwt_extended import JWTManager
 from config import Config, swagger_template
 from database.db import db
+import cloudinary
 
 def create_app():
     app = Flask(__name__)
@@ -15,16 +16,26 @@ def create_app():
     JWTManager(app)
     db.init_app(app)
     
+    # Configure Cloudinary
+    cloudinary.config(
+        cloud_name = app.config['CLOUDINARY_CLOUD_NAME'],
+        api_key = app.config['CLOUDINARY_API_KEY'],
+        api_secret = app.config['CLOUDINARY_API_SECRET'],
+        secure = True
+    )
+    
     # Register Blueprints
     from auth.routes.auth_routes import auth_bp
     from customers.routes.customers_routes import customers_bp
     from workflow.routes.workflow_routes import workflow_bp
     from calculator.routes.calculator_routes import calculator_bp
+    from media.routes.media_routes import media_bp
     
     app.register_blueprint(auth_bp, url_prefix='/')
     app.register_blueprint(customers_bp, url_prefix='/')
     app.register_blueprint(workflow_bp, url_prefix='/workflow')
     app.register_blueprint(calculator_bp, url_prefix='/calculator')
+    app.register_blueprint(media_bp, url_prefix='/media')
     
     @app.route('/')
     def index():
